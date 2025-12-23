@@ -1,17 +1,15 @@
-import pg from "pg";
-
-const { Pool } = pg;
+import { Pool } from "pg";
+import { config } from "./config";
 
 export const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT),
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  host: config.DB_HOST,
+  port: config.DB_PORT,
+  database: config.DB_NAME,
+  user: config.DB_USER,
+  password: config.DB_PASSWORD,
+  ssl: { rejectUnauthorized: false } 
 });
+
 
 // Optional: test connection on startup
 pool.connect()

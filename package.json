@@ -2,12 +2,12 @@
   "name": "savartan-backend",
   "version": "1.0.0",
   "description": "",
- "type": "module",
-  "main": "index.js",
+  "type": "commonjs",
+  "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-  "build": "tsc",
-  "start": "node dist/server.js"
+    "build": "tsc",
+    "start": "node dist/server.js"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +29,7 @@
     "@fastify/cors": "^11.2.0",
     "@fastify/env": "^5.0.3",
     "@fastify/jwt": "^10.0.0",
+    "@fastify/sensible": "^6.0.4",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.2.3",
     "fastify": "^5.6.2",
