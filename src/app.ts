@@ -6,6 +6,8 @@ import { config } from "./config";
 import { jwtPlugin } from "./plugins/jwt";
 import { authGuardPlugin } from "./plugins/authGuard";
 import { authRoutes } from "./modules/auth/auth.routes";
+import { petsRoutes } from "./modules/pets/pets.routes";
+
 
 export async function buildApp() {
   const app = Fastify({ logger: true });
@@ -13,7 +15,7 @@ export async function buildApp() {
   await app.register(sensible);
 
   await app.register(cookie, {
-    secret: config.JWT_SECRET, // ok for signing cookies if you want, but not required
+    secret: config.JWT_SECRET, 
     hook: "onRequest"
   });
 
@@ -23,6 +25,9 @@ export async function buildApp() {
   app.get("/health", async () => ({ ok: true }));
 
   await app.register(authRoutes);
+  await app.register(petsRoutes);
+
+  
 
   return app;
 }
