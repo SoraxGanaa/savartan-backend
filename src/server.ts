@@ -1,13 +1,12 @@
-import "dotenv/config";
-import { app } from "./app.js";
+import { buildApp } from "./app";
+import { config } from "./config";
 
-const PORT = Number(process.env.PORT) || 3000;
+async function main() {
+  const app = await buildApp();
+  await app.listen({ port: config.PORT, host: "0.0.0.0" });
+}
 
-app.listen({ port: PORT, host: "0.0.0.0" })
-  .then(() => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-  })
-  .catch((err) => {
-    app.log.error(err);
-    process.exit(1);
-  });
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
