@@ -7,7 +7,8 @@ import { jwtPlugin } from "./plugins/jwt";
 import { authGuardPlugin } from "./plugins/authGuard";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { petsRoutes } from "./modules/pets/pets.routes";
-
+import multipart from "@fastify/multipart";
+import { uploadRoutes } from "./modules/uploads/upload.routes";
 
 export async function buildApp() {
   const app = Fastify({ logger: true });
@@ -15,8 +16,8 @@ export async function buildApp() {
   await app.register(sensible);
 
   await app.register(cookie, {
-    secret: config.JWT_SECRET, 
-    hook: "onRequest"
+    secret: config.JWT_SECRET,
+    hook: "onRequest",
   });
 
   await app.register(jwtPlugin);
@@ -26,8 +27,13 @@ export async function buildApp() {
 
   await app.register(authRoutes);
   await app.register(petsRoutes);
+  await app.register(multipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB
+    },
+  });
 
-  
+  await app.register(uploadRoutes);
 
   return app;
 }

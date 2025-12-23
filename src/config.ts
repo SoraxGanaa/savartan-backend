@@ -20,7 +20,12 @@ export const config = {
   ACCESS_TOKEN_TTL: process.env.ACCESS_TOKEN_TTL ?? "15m",
   REFRESH_TOKEN_DAYS: Number(process.env.REFRESH_TOKEN_DAYS ?? 30),
 
-  NODE_ENV: process.env.NODE_ENV ?? "development"
+  NODE_ENV: process.env.NODE_ENV ?? "development",
+
+  AWS_REGION: must("AWS_REGION"),
+  AWS_ACCESS_KEY_ID: must("AWS_ACCESS_KEY_ID"),
+  AWS_SECRET_ACCESS_KEY: must("AWS_SECRET_ACCESS_KEY"),
+  AWS_S3_BUCKET: must("AWS_S3_BUCKET")
 };
 
 export const isProd = config.NODE_ENV === "production";
