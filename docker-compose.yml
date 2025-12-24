@@ -1,0 +1,9 @@
+services:
+  api:
+    image: ghcr.io/${GITHUB_OWNER}/${GITHUB_REPO}:latest
+    container_name: savartan-api
+    restart: always
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
