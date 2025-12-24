@@ -9,9 +9,16 @@ import { authRoutes } from "./modules/auth/auth.routes";
 import { petsRoutes } from "./modules/pets/pets.routes";
 import multipart from "@fastify/multipart";
 import { uploadRoutes } from "./modules/uploads/upload.routes";
+import cors from "@fastify/cors";
 
 export async function buildApp() {
   const app = Fastify({ logger: true });
+  await app.register(cors, {
+  origin: [
+    "http://localhost:3000"
+  ],
+  credentials: true
+});
 
   await app.register(sensible);
 
