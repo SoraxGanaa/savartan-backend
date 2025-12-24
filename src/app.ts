@@ -9,6 +9,8 @@ import { authRoutes } from "./modules/auth/auth.routes";
 import { petsRoutes } from "./modules/pets/pets.routes";
 import multipart from "@fastify/multipart";
 import { uploadRoutes } from "./modules/uploads/upload.routes";
+import { profileRoutes } from "./modules/profile/profile.routes";
+
 import cors from "@fastify/cors";
 
 export async function buildApp() {
@@ -52,6 +54,8 @@ export async function buildApp() {
   });
 
   await app.register(uploadRoutes);
+  await app.register(profileRoutes);
+
 
   return app;
 }
