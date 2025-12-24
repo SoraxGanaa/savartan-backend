@@ -154,13 +154,22 @@ export async function listPets(query: {
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
   const res = await pool.query(
-    `SELECT *
-     FROM pets
-     ${whereSql}
-     ORDER BY created_at DESC
-     LIMIT $${values.length - 1} OFFSET $${values.length}`,
-    values
-  );
+  `SELECT
+      p.*,
+      pm.url AS profile_img
+   FROM pets p
+   LEFT JOIN LATERAL (
+     SELECT url
+     FROM pet_media
+     WHERE pet_id = p.id AND is_profile = true
+     ORDER BY created_at ASC
+     LIMIT 1
+   ) pm ON true
+   ${whereSql}
+   ORDER BY p.created_at DESC
+   LIMIT $${values.length - 1} OFFSET $${values.length}`,
+  values
+);
 
   return res.rows;
 }
