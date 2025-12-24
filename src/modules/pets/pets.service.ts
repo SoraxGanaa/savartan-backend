@@ -1,4 +1,5 @@
 import { pool } from "../../db";
+import { deleteManyFromS3ByUrls } from "../../utils/s3";
 
 type Role = "USER" | "ADMIN";
 
@@ -209,12 +210,17 @@ export async function updatePet(petId: string, patch: UpdatePetInput) {
   return res.rows[0] ?? null;
 }
 
-export async function replacePetMedia(petId: string, media: Array<{ media_type: "IMAGE" | "VIDEO"; url: string; is_profile?: boolean | null }>) {
+export async function replacePetMedia(
+  petId: string,
+  media: Array<{ media_type: "IMAGE" | "VIDEO"; url: string; is_profile?: boolean | null }>
+) {
+  const oldRes = await pool.query(`SELECT url FROM pet_media WHERE pet_id=$1`, [petId]);
+  const oldUrls: string[] = oldRes.rows.map((r: any) => r.url).filter(Boolean);
+
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
-    // delete old
     await client.query(`DELETE FROM pet_media WHERE pet_id=$1`, [petId]);
 
     const profileCount = media.filter((m) => m.is_profile === true).length;
@@ -232,7 +238,14 @@ export async function replacePetMedia(petId: string, media: Array<{ media_type: 
 
     await client.query("COMMIT");
 
-    const mediaRes = await pool.query(`SELECT * FROM pet_media WHERE pet_id=$1 ORDER BY is_profile DESC, created_at ASC`, [petId]);
+    if (oldUrls.length > 0) {
+      await deleteManyFromS3ByUrls(oldUrls);
+    }
+
+    const mediaRes = await pool.query(
+      `SELECT * FROM pet_media WHERE pet_id=$1 ORDER BY is_profile DESC, created_at ASC`,
+      [petId]
+    );
     return mediaRes.rows;
   } catch (err) {
     await client.query("ROLLBACK");
@@ -243,7 +256,18 @@ export async function replacePetMedia(petId: string, media: Array<{ media_type: 
 }
 
 export async function deletePetHard(petId: string) {
-  // pet_media will cascade delete automatically
+  // 1) get media URLs BEFORE deleting pet (because cascade will delete rows)
+  const mediaRes = await pool.query(`SELECT url FROM pet_media WHERE pet_id=$1`, [petId]);
+  const urls: string[] = mediaRes.rows.map((r: any) => r.url).filter(Boolean);
+
+  // 2) delete pet (will cascade delete pet_media rows)
   const res = await pool.query(`DELETE FROM pets WHERE id=$1 RETURNING id`, [petId]);
-  return res.rows[0] ?? null;
+  const deleted = res.rows[0] ?? null;
+
+  // 3) delete from S3 (best effort)
+  if (deleted && urls.length > 0) {
+    await deleteManyFromS3ByUrls(urls);
+  }
+
+  return deleted;
 }

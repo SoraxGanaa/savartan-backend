@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 import { config } from "../config";
 
@@ -31,4 +31,40 @@ export async function uploadToS3(params: {
     key,
     url: `https://${config.AWS_S3_BUCKET}.s3.${config.AWS_REGION}.amazonaws.com/${key}`
   };
+}
+
+export function extractS3KeyFromUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+ 
+    const key = u.pathname.replace(/^\/+/, "");
+    if (!key) return null;
+
+    const host = u.host.toLowerCase();
+    const bucketHost1 = `${config.AWS_S3_BUCKET}.s3.${config.AWS_REGION}.amazonaws.com`.toLowerCase();
+    const bucketHost2 = `${config.AWS_S3_BUCKET}.s3.amazonaws.com`.toLowerCase();
+
+    if (host !== bucketHost1 && host !== bucketHost2) return null;
+
+    return key;
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteFromS3ByKey(key: string) {
+  await s3.send(
+    new DeleteObjectCommand({
+      Bucket: config.AWS_S3_BUCKET,
+      Key: key
+    })
+  );
+}
+
+export async function deleteManyFromS3ByUrls(urls: string[]) {
+  const keys = urls
+    .map(extractS3KeyFromUrl)
+    .filter((k): k is string => !!k);
+
+  await Promise.allSettled(keys.map((k) => deleteFromS3ByKey(k)));
 }
