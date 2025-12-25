@@ -21,7 +21,8 @@ export async function buildApp() {
 
     const allowed = [
       "http://localhost:3000",
-      "http://127.0.0.1:3000"
+      "http://127.0.0.1:3000",
+      "https://savartan-frontend.vercel.app",
     ];
 
     if (allowed.includes(origin)) return cb(null, true);
