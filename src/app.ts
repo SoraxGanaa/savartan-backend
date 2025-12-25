@@ -23,12 +23,12 @@ export async function buildApp() {
       const allowList = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        "https://savartan-frontend.vercel.app",
+        "https://savartan-web.vercel.app",
       ];
 
       // allow vercel preview deployments like:
       // https://savartan-frontend-git-xxx.vercel.app
-      const vercelPreview = /^https:\/\/savartan-frontend.*\.vercel\.app$/;
+      const vercelPreview = /^https:\/\/savartan-web.*\.vercel\.app$/;
 
       if (allowList.includes(origin) || vercelPreview.test(origin)) {
         return cb(null, true);
