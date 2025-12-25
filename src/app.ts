@@ -16,23 +16,37 @@ import cors from "@fastify/cors";
 export async function buildApp() {
   const app = Fastify({ logger: true });
   await app.register(cors, {
-  origin: (origin, cb) => {
-    if (!origin) return cb(null, true);
+    origin: (origin, cb) => {
+      // allow server-to-server, curl, postman (no origin header)
+      if (!origin) return cb(null, true);
 
-    const allowed = [
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-      "https://savartan-frontend.vercel.app",
-    ];
+      const allowList = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://savartan-frontend.vercel.app",
+      ];
 
-    if (allowed.includes(origin)) return cb(null, true);
-    return cb(new Error("Not allowed by CORS"), false);
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-});
+      // allow vercel preview deployments like:
+      // https://savartan-frontend-git-xxx.vercel.app
+      const vercelPreview = /^https:\/\/savartan-frontend.*\.vercel\.app$/;
 
+      if (allowList.includes(origin) || vercelPreview.test(origin)) {
+        return cb(null, true);
+      }
+
+      // IMPORTANT: do NOT throw Error here; just deny
+      return cb(null, false);
+    },
+
+    credentials: true,
+
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+
+    allowedHeaders: ["Content-Type", "Authorization"],
+
+    // helps caching preflight
+    maxAge: 86400,
+  });
 
   await app.register(sensible);
 
@@ -56,7 +70,6 @@ export async function buildApp() {
 
   await app.register(uploadRoutes);
   await app.register(profileRoutes);
-
 
   return app;
 }
