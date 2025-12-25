@@ -2,7 +2,7 @@ import { FastifyInstance } from "fastify";
 import {
   addOrReplaceMediaBodySchema,
   createPetBodySchema,
-  updatePetBodySchema
+  updatePetBodySchema,
 } from "./pets.schemas";
 import {
   assertCanEditOrThrow,
@@ -11,7 +11,7 @@ import {
   getPetById,
   listPets,
   replacePetMedia,
-  updatePet
+  updatePet,
 } from "./pets.service";
 
 function parseBool(v: any): boolean | undefined {
@@ -30,7 +30,7 @@ export async function petsRoutes(app: FastifyInstance) {
     "/pets",
     {
       ...requireAuth,
-      schema: { body: createPetBodySchema }
+      schema: { body: createPetBodySchema },
     },
     async (req: any, reply) => {
       const body = req.body as any;
@@ -40,58 +40,58 @@ export async function petsRoutes(app: FastifyInstance) {
         createdBy: userId,
         input: {
           ...body,
-          media: body.media ?? null
-        }
+          media: body.media ?? null,
+        },
       });
 
       return reply.code(201).send(created);
     }
   );
 
-  // LIST pets (filters)
-  // GET /pets?type=DOG&category=STRAY&is_active=true&search=husky&limit=20&offset=0
-  app.get(
-    "/pets",
-    { ...requireAuth },
-    async (req: any) => {
-      const q = req.query as any;
+  app.get("/pets", { ...requireAuth }, async (req: any) => {
+    const q = req.query as any;
 
-      return listPets({
-        type: q.type,
-        category: q.category,
-        is_active: parseBool(q.is_active),
-        created_by: q.created_by,
-        search: q.search,
-        limit: q.limit ? Number(q.limit) : undefined,
-        offset: q.offset ? Number(q.offset) : undefined
-      });
-    }
-  );
+    return listPets({
+      type: q.type,
+      category: q.category,
+      sex: q.sex,
+      location: q.location,
+      is_active: parseBool(q.is_active),
+      sprayed: parseBool(q.sprayed),
+      vaccinated: parseBool(q.vaccinated),
+      dewormed: parseBool(q.dewormed),
+      created_by: q.created_by,
+      search: q.search,
+      min_age: q.min_age !== undefined ? Number(q.min_age) : undefined,
+      max_age: q.max_age !== undefined ? Number(q.max_age) : undefined,
+      limit: q.limit ? Number(q.limit) : undefined,
+      offset: q.offset ? Number(q.offset) : undefined,
+    });
+  });
 
-  // GET one pet + media
-  app.get(
-    "/pets/:id",
-    { ...requireAuth },
-    async (req: any, reply) => {
-      const { id } = req.params as { id: string };
-      const data = await getPetById(id);
-      if (!data) return reply.notFound("Pet not found");
-      return data;
-    }
-  );
+  app.get("/pets/:id", { ...requireAuth }, async (req: any, reply) => {
+    const { id } = req.params as { id: string };
+    const data = await getPetById(id);
+    if (!data) return reply.notFound("Pet not found");
+    return data;
+  });
 
   // UPDATE pet
   app.patch(
     "/pets/:id",
     {
       ...requireAuth,
-      schema: { body: updatePetBodySchema }
+      schema: { body: updatePetBodySchema },
     },
     async (req: any, reply) => {
       const { id } = req.params as { id: string };
       const body = req.body as any;
 
-      await assertCanEditOrThrow({ petId: id, userId: req.user.sub, role: req.user.role });
+      await assertCanEditOrThrow({
+        petId: id,
+        userId: req.user.sub,
+        role: req.user.role,
+      });
 
       const updated = await updatePet(id, body);
       if (!updated) return reply.notFound("Pet not found");
@@ -104,13 +104,17 @@ export async function petsRoutes(app: FastifyInstance) {
     "/pets/:id/media",
     {
       ...requireAuth,
-      schema: { body: addOrReplaceMediaBodySchema }
+      schema: { body: addOrReplaceMediaBodySchema },
     },
     async (req: any, reply) => {
       const { id } = req.params as { id: string };
       const body = req.body as any;
 
-      await assertCanEditOrThrow({ petId: id, userId: req.user.sub, role: req.user.role });
+      await assertCanEditOrThrow({
+        petId: id,
+        userId: req.user.sub,
+        role: req.user.role,
+      });
 
       // ensure pet exists
       const existing = await getPetById(id);
@@ -122,18 +126,18 @@ export async function petsRoutes(app: FastifyInstance) {
   );
 
   // DELETE pet (hard delete)
-  app.delete(
-    "/pets/:id",
-    { ...requireAuth },
-    async (req: any, reply) => {
-      const { id } = req.params as { id: string };
+  app.delete("/pets/:id", { ...requireAuth }, async (req: any, reply) => {
+    const { id } = req.params as { id: string };
 
-      await assertCanEditOrThrow({ petId: id, userId: req.user.sub, role: req.user.role });
+    await assertCanEditOrThrow({
+      petId: id,
+      userId: req.user.sub,
+      role: req.user.role,
+    });
 
-      const deleted = await deletePetHard(id);
-      if (!deleted) return reply.notFound("Pet not found");
+    const deleted = await deletePetHard(id);
+    if (!deleted) return reply.notFound("Pet not found");
 
-      return { ok: true, id: deleted.id };
-    }
-  );
+    return { ok: true, id: deleted.id };
+  });
 }

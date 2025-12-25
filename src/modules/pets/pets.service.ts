@@ -121,9 +121,20 @@ export async function createPetWithMedia(params: { createdBy: string; input: Cre
 export async function listPets(query: {
   type?: "DOG" | "CAT";
   category?: "STRAY" | "OWNED";
+  sex?: "MALE" | "FEMALE";
+  location?: string;
+
   is_active?: boolean;
+  sprayed?: boolean;
+  vaccinated?: boolean;
+  dewormed?: boolean;
+
+  min_age?: number;
+  max_age?: number;
+
   created_by?: string;
   search?: string;
+
   limit?: number;
   offset?: number;
 }) {
@@ -135,15 +146,41 @@ export async function listPets(query: {
     if (val !== undefined) values.push(val);
   };
 
-  if (query.type) add(`type = $${values.length + 1}`, query.type);
-  if (query.category) add(`category = $${values.length + 1}`, query.category);
-  if (typeof query.is_active === "boolean") add(`is_active = $${values.length + 1}`, query.is_active);
-  if (query.created_by) add(`created_by = $${values.length + 1}`, query.created_by);
+  // enums
+  if (query.type) add(`p.type = $${values.length + 1}`, query.type);
+  if (query.category) add(`p.category = $${values.length + 1}`, query.category);
+  if (query.sex) add(`p.sex = $${values.length + 1}`, query.sex);
 
-  if (query.search) {
-    // simple search on name/breed/location/about
-    const term = `%${query.search}%`;
-    add(`(name ILIKE $${values.length + 1} OR breed ILIKE $${values.length + 1} OR location ILIKE $${values.length + 1} OR about ILIKE $${values.length + 1})`, term);
+  // booleans
+  if (typeof query.is_active === "boolean") add(`p.is_active = $${values.length + 1}`, query.is_active);
+  if (typeof query.sprayed === "boolean") add(`p.sprayed = $${values.length + 1}`, query.sprayed);
+  if (typeof query.vaccinated === "boolean") add(`p.vaccinated = $${values.length + 1}`, query.vaccinated);
+  if (typeof query.dewormed === "boolean") add(`p.dewormed = $${values.length + 1}`, query.dewormed);
+
+  // owner
+  if (query.created_by) add(`p.created_by = $${values.length + 1}`, query.created_by);
+
+  // location filter (ILIKE)
+  if (query.location && query.location.trim()) {
+    add(`p.location ILIKE $${values.length + 1}`, `%${query.location.trim()}%`);
+  }
+
+  // age range
+  if (typeof query.min_age === "number" && !Number.isNaN(query.min_age)) {
+    add(`p.age >= $${values.length + 1}`, query.min_age);
+  }
+  if (typeof query.max_age === "number" && !Number.isNaN(query.max_age)) {
+    add(`p.age <= $${values.length + 1}`, query.max_age);
+  }
+
+  // search across name/breed/location/about/contact_info
+  if (query.search && query.search.trim()) {
+    const term = `%${query.search.trim()}%`;
+    values.push(term);
+    const idx = values.length; // single placeholder index
+    where.push(
+      `(p.name ILIKE $${idx} OR p.breed ILIKE $${idx} OR p.location ILIKE $${idx} OR p.about ILIKE $${idx} OR p.contact_info ILIKE $${idx})`
+    );
   }
 
   const limit = Math.min(query.limit ?? 20, 100);
@@ -154,25 +191,26 @@ export async function listPets(query: {
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
   const res = await pool.query(
-  `SELECT
-      p.*,
-      pm.url AS profile_img
-   FROM pets p
-   LEFT JOIN LATERAL (
-     SELECT url
-     FROM pet_media
-     WHERE pet_id = p.id AND is_profile = true
-     ORDER BY created_at ASC
-     LIMIT 1
-   ) pm ON true
-   ${whereSql}
-   ORDER BY p.created_at DESC
-   LIMIT $${values.length - 1} OFFSET $${values.length}`,
-  values
-);
+    `SELECT
+        p.*,
+        pm.url AS profile_img
+     FROM pets p
+     LEFT JOIN LATERAL (
+       SELECT url
+       FROM pet_media
+       WHERE pet_id = p.id AND is_profile = true
+       ORDER BY created_at ASC
+       LIMIT 1
+     ) pm ON true
+     ${whereSql}
+     ORDER BY p.created_at DESC
+     LIMIT $${values.length - 1} OFFSET $${values.length}`,
+    values
+  );
 
   return res.rows;
 }
+
 
 export async function getPetById(petId: string) {
   const petRes = await pool.query(`SELECT * FROM pets WHERE id=$1`, [petId]);
